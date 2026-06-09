@@ -18,19 +18,6 @@ An AI-powered application that allows users to upload research papers and ask qu
 * Google Gemini API
 * PyPDF
 
-## 📸 Screenshots
-
-### Home Page
-
-(Add screenshot here)
-
-### PDF Uploaded
-
-(Add screenshot here)
-
-### AI Generated Answer
-
-(Add screenshot here)
 
 ## ⚙️ Installation
 
