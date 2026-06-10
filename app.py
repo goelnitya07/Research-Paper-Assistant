@@ -1,13 +1,48 @@
 import streamlit as st
-import google.generativeai as genai
 from pypdf import PdfReader
+import ollama
+
+import faiss
+import numpy as np
+
+@st.cache_resource
+def create_vector_store(text):
+
+    chunk_size = 300
+
+    chunks = []
+
+    for i in range(0, len(text), chunk_size):
+
+        chunks.append(
+            text[i:i + chunk_size]
+        )
+
+    embedding_response = ollama.embed(
+        model="nomic-embed-text",
+        input=chunks
+    )
+
+    embeddings = np.array(
+        embedding_response["embeddings"]
+    ).astype("float32")
+
+    dimension = embeddings.shape[1]
+
+    index = faiss.IndexFlatL2(
+        dimension
+    )
+
+    index.add(embeddings)
+
+    return chunks, index
 
 # =========================
 # PAGE CONFIG
 # =========================
 
 st.set_page_config(
-    page_title="Research Paper Q&A Assistant",
+    page_title="Research Paper RAG Assistant",
     page_icon="📚",
     layout="wide"
 )
@@ -46,20 +81,27 @@ h1 {
     background-color: #111111;
 }
 
+.stButton>button {
+    border-radius: 10px;
+    background-color: #4CAF50;
+    color: white;
+}
+
+.stTextInput input {
+    border-radius: 10px;
+}
+
+[data-testid="stMetricValue"] {
+    color: #4CAF50;
+}
+
+hr {
+    border: 1px solid #222;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-# =========================
-# GEMINI SETUP
-# =========================
-
-API_KEY = "YOUR_API_KEY"
-
-genai.configure(api_key=API_KEY)
-
-model = genai.GenerativeModel(
-    "models/gemini-2.5-flash"
-)
 
 # =========================
 # SIDEBAR
@@ -72,27 +114,34 @@ with st.sidebar:
     st.write("""
     ### Features
 
-    ✅ Upload Research Papers
+✅ Upload Research Papers
 
-    ✅ AI-Powered Question Answering
+✅ Semantic Search with FAISS
 
-    ✅ Automatic PDF Text Extraction
+✅ Local LLM Question Answering
 
-    ✅ Research Paper Analysis
+✅ Automatic PDF Text Extraction
 
-    ### Tech Stack
+✅ Retrieval-Augmented Generation (RAG)
 
-    - Python
-    - Streamlit
-    - Google Gemini
-    - PyPDF
+### Tech Stack
 
-    ### Use Cases
+- Python
+- Streamlit
+- Ollama
+- Qwen3
+- FAISS
+- nomic-embed-text
+- NumPy
+- PyPDF
 
-    - Research Assistance
-    - Literature Review
-    - Academic Study
-    - Quick Paper Understanding
+### Use Cases
+
+- Research Assistance
+- Literature Review
+- Academic Study
+- Quick Paper Understanding
+- Semantic Document Search
     """)
 
 # =========================
@@ -100,10 +149,10 @@ with st.sidebar:
 # =========================
 
 st.markdown("""
-<h1>📚 Research Paper Q&A Assistant</h1>
+<h1>📚 Research Paper RAG Assistant</h1>
 
 <p class="subtitle">
-Upload a research paper and ask questions using Gemini AI
+Upload a research paper and ask questions using Local RAG Pipeline powered by Qwen3
 </p>
 """, unsafe_allow_html=True)
 
@@ -134,6 +183,8 @@ if pdf:
 
             if page_text:
                 text += page_text
+
+        chunks, index = create_vector_store(text) 
 
     st.success("✅ PDF Loaded Successfully!")
 
@@ -175,30 +226,73 @@ if pdf:
 
     if question:
 
+        question_embedding = ollama.embed(
+            model="nomic-embed-text",
+            input=question
+        )
+
+        question_vector = np.array(
+            [question_embedding["embeddings"][0]]
+        ).astype("float32")
+
+        D, I = index.search(
+            question_vector,
+            k=2
+        )
+
+        retrieved_chunks = []
+
+        for idx in I[0]:
+            retrieved_chunks.append(
+                chunks[idx]
+            )
+
+        context = "\n\n".join(
+            retrieved_chunks
+        )
+
         prompt = f"""
 You are an expert research assistant.
 
-Research Paper:
-{text[:30000]}
+Context from the paper:
+
+{context}
 
 Question:
+
 {question}
 
 Instructions:
 
-- Answer ONLY using information from the paper.
-- Use clear section headings.
-- Use bullet points wherever appropriate.
-- Keep the response structured and easy to read.
-- Highlight key findings separately.
-- If information is not available in the paper, explicitly state that.
-- Format the entire response using Markdown.
+- Answer ONLY using information from the context.
+- Use headings and bullet points.
+- Be concise and well structured.
+- If the answer is not present, say so.
 """
 
         with st.spinner("🤖 Analyzing paper..."):
 
             try:
-                response = model.generate_content(prompt)
+
+                response = ollama.chat(
+                    model="qwen3:1.7b",
+                    messages=[
+                        {
+                            "role":"system",
+                            "content":"Answer directly. Do not reveal reasoning. Do not think aloud."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    options={
+                        "temperature": 0.1,
+                        "num_predict": 300
+                    }
+                )
+
+                answer = response["message"]["content"]
 
                 st.markdown("""
                 <div class="answer-box">
@@ -206,12 +300,12 @@ Instructions:
                 </div>
                 """, unsafe_allow_html=True)
 
-                st.markdown(response.text)
+                st.markdown(answer)
 
             except Exception as e:
 
                 st.error(
-                    "Gemini API limit reached. Please wait a minute and try again."
+                    "Could not connect to Ollama."
                 )
 
                 st.code(str(e))
@@ -222,5 +316,5 @@ Instructions:
 st.markdown("---")
 
 st.caption(
-    "Built using Streamlit + Gemini 2.5 Flash"
+    "Built using Streamlit + Ollama + Qwen3 + FAISS"
 )

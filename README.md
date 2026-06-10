@@ -1,66 +1,72 @@
-# 📚 Research Paper Q&A Assistant
+# 📚 Research Paper RAG Assistant
 
-An AI-powered application that allows users to upload research papers and ask questions about their content using Google's Gemini AI.
+A Retrieval-Augmented Generation (RAG) system for research paper analysis built using Streamlit, FAISS, Ollama, and Qwen3.
 
-## 🚀 Features
+## Features
 
-* Upload research papers in PDF format
-* Automatic text extraction from PDFs
-* Ask natural language questions
-* AI-generated answers based on paper content
-* Interactive Streamlit interface
-* Research paper summarization and analysis
+- Upload PDF research papers
+- Automatic text extraction
+- Semantic chunking
+- Vector embeddings using nomic-embed-text
+- FAISS vector database
+- Context-aware retrieval
+- Question answering with Qwen3
+- Fully local pipeline (no API keys required)
 
-## 🛠️ Technologies Used
+## Architecture
 
-* Python
-* Streamlit
-* Google Gemini API
-* PyPDF
+PDF
+↓
+Chunking
+↓
+nomic-embed-text Embeddings
+↓
+FAISS Vector Store
+↓
+Top-k Retrieval
+↓
+Qwen3 (Ollama)
+↓
+Answer Generation
 
-## 📸 Screenshots
+## Tech Stack
 
-### Home Page
+- Python
+- Streamlit
+- Ollama
+- Qwen3
+- FAISS
+- nomic-embed-text
+- NumPy
+- PyPDF
 
-(Add screenshot here)
-
-### PDF Uploaded
-
-(Add screenshot here)
-
-### AI Generated Answer
-
-(Add screenshot here)
-
-## ⚙️ Installation
+## Installation
 
 ```bash
 pip install streamlit
-pip install google-generativeai
+pip install ollama
+pip install faiss-cpu
 pip install pypdf
+pip install numpy
 ```
 
-## ▶️ Run the Application
+Pull models:
+
+```bash
+ollama pull qwen3:4b
+ollama pull nomic-embed-text
+```
+
+Run:
 
 ```bash
 streamlit run app.py
 ```
 
-## 🎯 Example Questions
+## Applications
 
-* What is the main contribution of this paper?
-* Summarize the methodology.
-* What datasets were used?
-* What are the key findings?
-* What limitations are discussed?
-
-## 🔮 Future Improvements
-
-* Retrieval-Augmented Generation (RAG)
-* Vector Database Integration (FAISS)
-* Research Paper Recommendations
-* Citation-based Responses
-
-## 👨‍💻 Author
-
-Built as an AI/ML project using Generative AI and Natural Language Processing concepts.
+- Research Assistance
+- Literature Review
+- Academic Study
+- Semantic Search
+- Document Understanding
